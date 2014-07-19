@@ -1,0 +1,18 @@
+gsm-receiver (0.1+git20120610.3a8350a-11) precise; urgency=low
+
+  * Adds libtool deps
+
+ -- Felipe Zimmere <felipe@zimmerle.org>  Thu, 07 Jun 2012 17:48:57 -0300
+
+gsm-receiver (0.1+git20120610.3a8350a-3) precise; urgency=low
+
+  * Adds automake and autoconf deps
+
+ -- Felipe Zimmere <felipe@zimmerle.org>  Thu, 07 Jun 2012 17:48:57 -0300
+
+gsm-receiver (0.1+git20120610.3a8350a-1) precise; urgency=low
+
+  * Initial release
+
+ -- Felipe Zimmere <felipe@zimmerle.org>  Thu, 07 Jun 2012 17:48:57 -0300
+

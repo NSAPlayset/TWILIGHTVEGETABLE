@@ -1,0 +1,29 @@
+Source: gsm-receiver
+Section: net
+Priority: extra
+Maintainer: Felipe Zimmere <felipe@zimmerle.org>
+Build-Depends: debhelper (>= 8.0.0), gnuradio, gnuradio-dev, automake, autoconf, libtool, python2.7, python2.7-dev, swig, swig2.0, pkg-config, libosmocore, libosmocore-dev, libboost-all-dev
+Standards-Version: 3.9.2
+Homepage: https://svn.berlin.ccc.de/projects/airprobe/
+Vcs-Git: git://github.com/zimmerle/airprobe.git
+Vcs-Browser: https://github.com/zimmerle/airprobe
+X-Python-Version: >= 2.7
+
+Package: gsm-receiver
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, gnuradio, python2.7, swig, swig2.0, libosmocore
+Description: former GSM-Sniffer project
+ AirProbe is the new home of the former GSM-Sniffer project.
+ The goal is to build an air-interface analysis tool for the
+ GSM (and possible later 3G) mobile phone standard. The
+ prime motivation is to learn the details of the technology,
+ help people who develop other open GSM technology (like 
+ OpenBTS, OpenMoko?,  BS11/OpenBSC and others) and
+ demonstrate the insecurity of the current standard.
+
+Package: gsm-receiver-scripts
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, gnuradio, python2.7, swig, swig2.0, libosmocore, gsm-receiver
+Description: Gsm receiver scripts
+ Set of scripts to speed up the used of the gsm receiver.
+
