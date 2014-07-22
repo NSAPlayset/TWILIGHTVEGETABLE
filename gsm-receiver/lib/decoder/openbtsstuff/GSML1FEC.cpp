@@ -20,9 +20,6 @@
 */
 
 
-#define NDEBUG
-
-
 #include "GSML1FEC.h"
 #include "GSMCommon.h"
 #include "RxBurst.h"

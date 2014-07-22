@@ -35,9 +35,12 @@ foreach(incdir ${GNURADIO_RUNTIME_INCLUDE_DIRS})
     list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/gnuradio/swig)
 endforeach(incdir)
 
+list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../lib ${CMAKE_CURRENT_SOURCE_DIR}/../lib/decoder ${CMAKE_CURRENT_SOURCE_DIR}/../lib/decoder/openbtsstuff)
+
+
 set(GR_SWIG_LIBRARIES gnuradio-npgsm)
-set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/npgsm_swig_doc.i)
-set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+#set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/npgsm_swig_doc.i)
+#set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 GR_SWIG_MAKE(npgsm_swig npgsm_swig.i)
 
