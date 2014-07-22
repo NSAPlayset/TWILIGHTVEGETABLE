@@ -1,2 +1,0 @@
-grincludedir = $(includedir)/gnuradio
-swigincludedir = $(grincludedir)/swig

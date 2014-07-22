@@ -1,1 +1,0 @@
-EXTRA_DIST = GSMSP_940.8Mhz_118.cfile
