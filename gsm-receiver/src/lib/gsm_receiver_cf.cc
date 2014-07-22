@@ -1,5 +1,5 @@
 /* -*- c++ -*- */
-/*
+    /*
  * @file
  * @author Piotr Krysik <pkrysik@stud.elka.pw.edu.pl>
  * @section LICENSE
