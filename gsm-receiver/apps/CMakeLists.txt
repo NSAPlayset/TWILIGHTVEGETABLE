@@ -20,6 +20,8 @@
 include(GrPython)
 
 list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/gnuradio/swig)
+
+
 GR_PYTHON_INSTALL(
     PROGRAMS gsm_receive.py
     DESTINATION bin

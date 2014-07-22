@@ -1,4 +1,4 @@
-add_subdirectory(openbtsstuff)
+add_subdirectory(openbtsdecoder)
 
 
 ########### next target ###############
@@ -11,8 +11,8 @@ SET(decoder_STAT_SRCS
    interleave.c
 )
 
-add_library(decoder STATIC ${decoder_STAT_SRCS} openbtsstuff/libopenbtsdecoder.la)
-
+add_library(decoder STATIC ${decoder_STAT_SRCS})
+target_link_libraries(decoder openbtsdecoder)
 
 ########### install files ###############
 

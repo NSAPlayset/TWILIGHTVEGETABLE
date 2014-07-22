@@ -43,12 +43,37 @@
 
 #define N_TCH_DECODER 7 /* for TS1..TS7 */
 
+#if defined _WIN32 || defined __CYGWIN__
+  #ifdef BUILDING_DLL
+    #ifdef __GNUC__
+      #define DLL_PUBLIC __attribute__ ((dllexport))
+    #else
+      #define DLL_PUBLIC __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
+    #endif
+  #else
+    #ifdef __GNUC__
+      #define DLL_PUBLIC __attribute__ ((dllimport))
+    #else
+      #define DLL_PUBLIC __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
+    #endif
+  #endif
+  #define DLL_LOCAL
+#else
+  #if __GNUC__ >= 4
+    #define DLL_PUBLIC __attribute__ ((visibility ("default")))
+    #define DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+  #else
+    #define DLL_PUBLIC
+    #define DLL_LOCAL
+  #endif
+#endif
+
 class gsm_receiver_cf;
 
 typedef boost::shared_ptr<gsm_receiver_cf> gsm_receiver_cf_sptr;
 typedef std::vector<gr_complex> vector_complex;
 
-gsm_receiver_cf_sptr gsm_make_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string maval, int maio, int hsn, std::string key, std::string configuration);
+DLL_PUBLIC gsm_receiver_cf_sptr gsm_make_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string maval, int maio, int hsn, std::string key, std::string configuration);
 
 /** GSM Receiver GNU Radio block
  *

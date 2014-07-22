@@ -17,10 +17,10 @@ from gnuradio.eng_option import eng_option
 from optparse import OptionParser
 import osmosdr
 
-for extdir in ['../../debug/src/lib', '../../debug/src/lib/.libs', '../lib', '../lib/.libs']:
+for extdir in ['../build/swig']:
     if extdir not in sys.path:
         sys.path.append(extdir)
-import gsm
+import npgsm_swig
 
 
 class tuner(gr.feval_dd):
@@ -155,7 +155,7 @@ class top_block(gr.top_block):
 
         print ">>>>>Input rate: ", sample_rate
 
-        self.receiver = gsm.receiver_cf(
+        self.receiver = npgsm_swig.receiver_cf(
             self.tuner_callback,
             self.synchronizer_callback,
             options.osr,
@@ -166,7 +166,7 @@ class top_block(gr.top_block):
             options.key.replace(' ', '').lower(),
             options.configuration.upper())
 
-        self.receiver_cipher = gsm.receiver_cf(
+        self.receiver_cipher = npgsm_swig.receiver_cf(
             self.tuner_callback,
             self.synchronizer_callback,
             options.osr,
@@ -205,19 +205,19 @@ class top_block(gr.top_block):
         parser = OptionParser(option_class=eng_option)
         parser.add_option("-a", "--args", type="string", default="",
                           help="gr-osmosdr device arguments")
-        parser.add_option("-s", "--sample-rate", type="eng_float", default=1800000,
-                          help="set receiver sample rate (default 1800000)")
-        parser.add_option("-f", "--frequency", type="eng_float", default=947.6e6,
-                          help="set receiver center frequency")
+        parser.add_option("-s", "--sample-rate", type="eng_float", default=1000000,
+                          help="set receiver sample rate (default 1000000)")
+        parser.add_option("-f", "--frequency", type="eng_float", default=891.0e6,
+                          help="set receiver center frequency (default: 891Mhz)")
         parser.add_option("-g", "--gain", type="eng_float", default=None,
                           help="set receiver gain")
         parser.add_option("--ppm", type="eng_float", default=0, help="set ppm correction")
 
         # channel hopping related settings
         parser.add_option("--c0pos", type="int", default=0, help="Main Channel ARFCN")
-        parser.add_option("--ma", type="string", default="ff", help="Mobile Allocation value")
-        parser.add_option("--maio", type="int", default=2, help="Mobile Allocation Index Offset")
-        parser.add_option("--hsn", type="int", default=6, help="Hopping Sequence Number")
+        parser.add_option("--ma", type="string", default="01", help="Mobile Allocation value")
+        parser.add_option("--maio", type="int", default=0, help="Mobile Allocation Index Offset")
+        parser.add_option("--hsn", type="int", default=0, help="Hopping Sequence Number")
         parser.add_option("-r", "--osr", type="int", default=4, help="Oversampling ratio [default=%default]")
 
 

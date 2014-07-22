@@ -3,12 +3,13 @@
 ########################################################################
 cmake_minimum_required(VERSION 2.8)
 project(gr-npgsm CXX C)
+set(PROJECT_VERSION "0.0.4")
 enable_testing()
 
 #select the release build type by default to get optimization flags
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE "Release")
-   message(STATUS "Build type not specified: defaulting to release.")
+   set(CMAKE_BUILD_TYPE "Debug")
+   message(STATUS "Build type not specified: defaulting to debug.")
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
@@ -17,11 +18,19 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
 ########################################################################
 # Compiler specific setup
 ########################################################################
+add_definitions(-Wl,--no-undefined)
+set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
+set(CMAKE_MODULE_LINKER_FLAGS "-Wl,--no-undefined")
+set(CMAKE_STATIC_LINKER_FLAGS "-Wl,--no-undefined")
+
 if(CMAKE_COMPILER_IS_GNUCXX AND NOT WIN32)
     #http://gcc.gnu.org/wiki/Visibility
     add_definitions(-fvisibility=hidden)
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    add_definitions(-fPIC)
+endif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 ########################################################################
 # Find boost
 ########################################################################
@@ -37,7 +46,7 @@ set(Boost_ADDITIONAL_VERSIONS
     "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
     "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
 )
-find_package(Boost "1.35" COMPONENTS filesystem system)
+find_package(Boost "1.35" COMPONENTS filesystem system thread)
 
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "Boost required to compile acars")
@@ -63,22 +72,26 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 ########################################################################
 # Find gnuradio build dependencies
 ########################################################################
-find_package(GnuradioRuntime)
 find_package(CppUnit)
+find_package(Osmocore)
+find_package( Threads REQUIRED )
 
 # To run a more advanced search for GNU Radio and it's components and
 # versions, use the following. Add any components required to the list
 # of GR_REQUIRED_COMPONENTS (in all caps) and change "version" to the
 # minimum API compatible version required.
 #
-# set(GR_REQUIRED_COMPONENTS RUNTIME BLOCKS FILTER ...)
-# find_package(Gnuradio "version")
+set(GR_REQUIRED_COMPONENTS RUNTIME BLOCKS FILTER)
+find_package(Gnuradio "3.7")
 
 if(NOT GNURADIO_RUNTIME_FOUND)
     message(FATAL_ERROR "GnuRadio Runtime required to compile np-gsm")
 endif()
 if(NOT CPPUNIT_FOUND)
     message(FATAL_ERROR "CppUnit required to compile np-gsm")
+endif()
+if(NOT_OSMOCORE_FOUND)
+    message(FATAL_ERROR "osmocore required to compile np-gsm")
 endif()
 
 ########################################################################
@@ -92,17 +105,19 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     ${CPPUNIT_INCLUDE_DIRS}
     ${GNURADIO_RUNTIME_INCLUDE_DIRS}
+    ${OSMOCORE_INCLUDE_DIRS}
 )
 
 link_directories(
     ${Boost_LIBRARY_DIRS}
     ${CPPUNIT_LIBRARY_DIRS}
     ${GNURADIO_RUNTIME_LIBRARY_DIRS}
+    ${OSMOCORE_LIBRARY_DIRS}
 )
 
 # Set component parameters
-set(GR_ACARS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)
-set(GR_ACARS_SWIG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/swig CACHE INTERNAL "" FORCE)
+set(GR_NPGSM_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)
+set(GR_NPGSM_SWIG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/swig CACHE INTERNAL "" FORCE)
 
 #### FFTW3 jmfriedt ####
 #find_package(FFTW)

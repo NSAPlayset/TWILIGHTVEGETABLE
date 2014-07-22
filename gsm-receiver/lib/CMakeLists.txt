@@ -4,8 +4,8 @@ add_subdirectory(decoder)
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
 
-include_directories(${Boost_INCLUDE_DIR} decoder decoder/openbtsstuff)
-link_directories(${Boost_LIBRARY_DIRS})
+include_directories(${Boost_INCLUDE_DIR} ${GNURADIO_RUNTIME_INCLUDES} ${OSMOCOM_INCLUDES} decoder decoder/openbtsdecoder)
+link_directories(${Boost_LIBRARY_DIRS} ${GNURADIO_RUNTIME_LIBRARY_DIRS} ${OSMOCOM_LIBRARY_DIRS})
 
 list(APPEND npgsm_sources
     gsm_receiver_cf.cc
@@ -14,7 +14,7 @@ list(APPEND npgsm_sources
 )
 
 add_library(gnuradio-npgsm SHARED ${npgsm_sources})
-target_link_libraries(gnuradio-npgsm ${Boost_LIBRARIES} ${GNURADIO_RUNTIME_LIBRARIES})
+target_link_libraries(gnuradio-npgsm ${Boost_LIBRARIES} ${GNURADIO_RUNTIME_LIBRARIES} ${OSMOCORE_LIBRARIES} decoder openbtsdecoder ${CMAKE_THREAD_LIBS_INIT})
 set_target_properties(gnuradio-npgsm PROPERTIES DEFINE_SYMBOL "gnuradio_npgsm_EXPORTS")
 
 ########################################################################

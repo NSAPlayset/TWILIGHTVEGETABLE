@@ -43,18 +43,6 @@ void lockCout();		///< call prior to writing cout
 void unlockCout();		///< call after writing cout
 //@}
 
-/**@name Macros for standard messages. */
-//@{
-#define COUT(text) { lockCout(); std::cout << text; unlockCout(); }
-#define CERR(text) { lockCerr(); std::cerr << __FILE__ << ":" << __LINE__ << ": " << text; unlockCerr(); }
-#ifdef NDEBUG
-#define DCOUT(text) {}
-#define OBJDCOUT(text) {}
-#else
-#define DCOUT(text) { COUT(__FILE__ << ":" << __LINE__ << " " << text); }
-#define OBJDCOUT(text) { DCOUT(this << " " << text); } 
-#endif
-//@}
 //@}
 
 
