@@ -31,6 +31,7 @@
 #include "gnuradio_swig_bug_workaround.h"	// mandatory bug fix
 #include <gnuradio/py_feval.h>
 #include "gsm_receiver_cf.h"
+#include "gsm_receiver_cf2.h"
 #include <stdexcept>
 /* #include "gsm_constants.h" */
 %}
@@ -42,8 +43,8 @@ GR_SWIG_BLOCK_MAGIC(gsm,receiver_cf);
 gsm_receiver_cf_sptr gsm_make_receiver_cf ( gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn, std::string key, std::string configuration);
 
 class gsm_receiver_cf : public gr::block
-{private:
+{
+private:
   gsm_receiver_cf ( gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn);
 };
 
-// ----------------------------------------------------------------

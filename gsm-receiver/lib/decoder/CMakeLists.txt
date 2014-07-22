@@ -9,6 +9,7 @@ SET(decoder_STAT_SRCS
    fire_crc.c
    gsmstack.c
    interleave.c
+   a5-1-2.c
 )
 
 add_library(decoder STATIC ${decoder_STAT_SRCS})

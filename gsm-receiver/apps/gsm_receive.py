@@ -17,10 +17,13 @@ from gnuradio.eng_option import eng_option
 from optparse import OptionParser
 import osmosdr
 
-for extdir in ['../build/swig']:
-    if extdir not in sys.path:
-        sys.path.append(extdir)
-import npgsm_swig
+try:
+    for extdir in ['../build/swig']:
+        if extdir not in sys.path:
+            sys.path.append(extdir)
+    import npgsm_swig as npgsm
+except:
+    import npgsm
 
 
 class tuner(gr.feval_dd):
@@ -155,7 +158,7 @@ class top_block(gr.top_block):
 
         print ">>>>>Input rate: ", sample_rate
 
-        self.receiver = npgsm_swig.receiver_cf(
+        self.receiver = npgsm.receiver_cf(
             self.tuner_callback,
             self.synchronizer_callback,
             options.osr,
@@ -166,7 +169,7 @@ class top_block(gr.top_block):
             options.key.replace(' ', '').lower(),
             options.configuration.upper())
 
-        self.receiver_cipher = npgsm_swig.receiver_cf(
+        self.receiver_cipher = npgsm.receiver_cf(
             self.tuner_callback,
             self.synchronizer_callback,
             options.osr,

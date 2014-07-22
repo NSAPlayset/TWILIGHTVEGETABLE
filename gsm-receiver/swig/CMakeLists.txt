@@ -55,6 +55,6 @@ GR_SWIG_INSTALL(TARGETS npgsm_swig DESTINATION ${GR_PYTHON_DIR}/npgsm)
 install(
     FILES
     npgsm_swig.i
-    ${CMAKE_CURRENT_BINARY_DIR}/npgsm_swig_doc.i
+#    ${CMAKE_CURRENT_BINARY_DIR}/npgsm_swig_doc.i
     DESTINATION ${GR_INCLUDE_DIR}/npgsm/swig
 )

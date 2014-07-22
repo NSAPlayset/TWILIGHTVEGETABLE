@@ -14,7 +14,6 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
-
 ########################################################################
 # Compiler specific setup
 ########################################################################
@@ -72,16 +71,16 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 ########################################################################
 # Find gnuradio build dependencies
 ########################################################################
-find_package(CppUnit)
-find_package(Osmocore)
-find_package( Threads REQUIRED )
+find_package(CppUnit REQUIRED)
+find_package(Osmocore REQUIRED)
+find_package(Threads REQUIRED)
 
 # To run a more advanced search for GNU Radio and it's components and
 # versions, use the following. Add any components required to the list
 # of GR_REQUIRED_COMPONENTS (in all caps) and change "version" to the
 # minimum API compatible version required.
 #
-set(GR_REQUIRED_COMPONENTS RUNTIME BLOCKS FILTER)
+set(GR_REQUIRED_COMPONENTS RUNTIME BLOCKS FILTER UHD)
 find_package(Gnuradio "3.7")
 
 if(NOT GNURADIO_RUNTIME_FOUND)
@@ -93,6 +92,10 @@ endif()
 if(NOT_OSMOCORE_FOUND)
     message(FATAL_ERROR "osmocore required to compile np-gsm")
 endif()
+
+list(APPEND CMAKE_MODULE_PATH ${GNURADIO_LIB_DIR}/cmake/gnuradio)
+find_package(UHD REQUIRED)
+
 
 ########################################################################
 # Setup the include and linker paths
