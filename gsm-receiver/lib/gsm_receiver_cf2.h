@@ -74,7 +74,7 @@ struct SCAN_BTS
 
 
 
-gsm_receiver_cf2_sptr gsm_make_receiver_cf2(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, \
+DLL_PUBLIC gsm_receiver_cf2_sptr gsm_make_receiver_cf2(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, \
 		std::string key, std::string configuration, SDRconfiguration sdr_config
 		);
 
@@ -194,7 +194,7 @@ class gsm_receiver_cf2 : public gr::block
      * @param nitems number of samples in the input vector
      * @return
      */
-    bool find_fcch_burst(const gr_complex *input, const gr_complex *in2, const int nitems);
+    bool find_fcch_burst(const gr_complex *input, const int nitems);
 
     /** Computes frequency offset from FCCH burst samples
      *

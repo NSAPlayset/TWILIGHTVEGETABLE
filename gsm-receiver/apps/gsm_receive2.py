@@ -143,13 +143,13 @@ class top_block(gr.top_block):
         sps = sample_rate / gsm_symb_rate / options.osr
 
         # configure channel filter
-        filter_cutoff = 135e3  # 135,417Hz is GSM bandwidth
+        filter_cutoff = 145e3  # 135,417Hz is GSM bandwidth
         filter_t_width = 10e3
         offset = 0.0
 
         filter_taps = filter.firdes.low_pass(1.0, sample_rate, filter_cutoff, filter_t_width, filter.firdes.WIN_HAMMING)
 
-        self.gr_null_sink = blocks.null_sink(568)
+        self.gr_null_sink = blocks.null_sink(568) # gr.sizeof_gr_complex*1
 
         self.filter = filter.freq_xlating_fir_filter_ccf(1, filter_taps, offset, sample_rate)
         self.interpolator = filter.fractional_resampler_cc(0, sps)
@@ -158,29 +158,41 @@ class top_block(gr.top_block):
 
         print ">>>>>Input rate: ", sample_rate
 
-        self.receiver = npgsm.receiver_cf(
+        sdr_config = npgsm.SDRconfiguration()
+        sdr_config.decim = 96      #set fgpa decimation rate to DECIM
+        sdr_config.freq = 891000000  #set input frequency to FREQ
+        sdr_config.osr = 4         #set oversample rate
+        sdr_config.ch0_infile = "/home/nick/my_project/gnuradio/cfile/TD-60-32-20120901-145641_d.cfile"
+        sdr_config.ch1_infile =  "/home/nick/my_project/gnuradio/cfile/TD-60-32-20120901-145641_d.cfile"
+        sdr_config.ch0_arfcn = 297 #set ch0_arfcn
+        sdr_config.rxa_gain = 30
+        sdr_config.rxb_gain = 30
+
+        sdr_config.fcch_ch = 0
+
+        sdr_config.is_double_downlink = 0 # using two downlink
+        sdr_config.realtime = 1
+        sdr_config.which_board = 0
+
+
+        # for bts scanner settings
+        sdr_config.sch_timeout_boundary = 10
+        sdr_config.fcch_timeout_boundary = 50
+        sdr_config.width8 = 0
+        sdr_config.ch0_upload =1
+        sdr_config.ch1_upload =1
+        sdr_config.server = "127.0.0.1"
+        sdr_config.port = 8000
+
+        self.receiver = npgsm.receiver_cf2(
             self.tuner_callback,
             self.synchronizer_callback,
             options.osr,
-            options.c0pos,
-            options.ma.replace(' ', '').lower(),
-            options.maio,
-            options.hsn,
             options.key.replace(' ', '').lower(),
-            options.configuration.upper())
+            options.configuration.upper(),
+            sdr_config)
 
-        self.receiver_cipher = npgsm.receiver_cf(
-            self.tuner_callback,
-            self.synchronizer_callback,
-            options.osr,
-            options.c0pos,
-            options.ma.replace(' ', '').lower(),
-            options.maio,
-            options.hsn,
-            options.key.replace(' ', '').lower(),
-            '1S')
-
-        self.connect((self.src, 0), (self.filter, 0), (self.interpolator, 0), (self.receiver, 0), (self.gr_null_sink, 0))
+        self.connect((self.src, 0), (self.filter, 0), (self.interpolator, 0), (self.receiver, 0))
 
     def set_center_frequency(self, center_freq):
         self.filter.set_center_freq(center_freq)
@@ -217,10 +229,6 @@ class top_block(gr.top_block):
         parser.add_option("--ppm", type="eng_float", default=0, help="set ppm correction")
 
         # channel hopping related settings
-        parser.add_option("--c0pos", type="int", default=0, help="Main Channel ARFCN")
-        parser.add_option("--ma", type="string", default="01", help="Mobile Allocation value")
-        parser.add_option("--maio", type="int", default=0, help="Mobile Allocation Index Offset")
-        parser.add_option("--hsn", type="int", default=0, help="Hopping Sequence Number")
         parser.add_option("-r", "--osr", type="int", default=4, help="Oversampling ratio [default=%default]")
 
 

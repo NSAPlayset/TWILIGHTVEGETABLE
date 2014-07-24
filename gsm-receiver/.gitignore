@@ -3,4 +3,5 @@ build
 *~
 *.user
 .idea
-
+*.pb.cc
+*.pb.h

@@ -26,12 +26,14 @@
 %import "gnuradio.i"			// the common stuff
 
 /* %include "gsm_constants.h" */
-
+%include "SDRconfigurationStruct.h"
+#define NPGSM_UDP_PORT 29653
 %{
 #include "gnuradio_swig_bug_workaround.h"	// mandatory bug fix
 #include <gnuradio/py_feval.h>
 #include "gsm_receiver_cf.h"
 #include "gsm_receiver_cf2.h"
+#include "SDRconfigurationStruct.h"
 #include <stdexcept>
 /* #include "gsm_constants.h" */
 %}
@@ -46,5 +48,14 @@ class gsm_receiver_cf : public gr::block
 {
 private:
   gsm_receiver_cf ( gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn);
+};
+
+GR_SWIG_BLOCK_MAGIC(gsm,receiver_cf2);
+
+gsm_receiver_cf2_sptr gsm_make_receiver_cf2 (gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, std::string key, std::string configuration, SDRconfiguration sdr_config);
+class gsm_receiver_cf2 : public gr::block
+{
+private:
+  gsm_receiver_cf2 ( gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, std::string key, std::string configuration, SDRConfiguration sdr_config);
 };
 

@@ -55,7 +55,7 @@ gsm_make_receiver_cf2(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, 
 }
 
 static const int MIN_IN = 1; // mininum number of in_0 streams
-static const int MAX_IN = 2; // maximum number of in_0 streams
+static const int MAX_IN = 1; // maximum number of in_0 streams
 static const int MIN_OUT = 0; // minimum number of output streams
 static const int MAX_OUT = 1; // maximum number of output streams
 
@@ -80,10 +80,7 @@ gsm_receiver_cf2::gsm_receiver_cf2(gr::feval_dd *tuner, gr::feval_dd *synchroniz
     d_trace_sch(true),
     d_symbol_counter(0),
     d_arfcn(sdr_config.ch0_arfcn),
-    d_ch1_arfcn(sdr_config.ch1_arfcn),
-    d_net_ip(sdr_config.net_ip),
-    d_net_port(sdr_config.net_port),
-	sb_e(0),
+    sb_e(0),
 	nb_e(0),
 	d_sdr_config(sdr_config)
 {
@@ -101,6 +98,11 @@ gsm_receiver_cf2::gsm_receiver_cf2(gr::feval_dd *tuner, gr::feval_dd *synchroniz
 	  std::cout << "Normal mode!!!" << std::endl;
   }
 
+  int ret = iconnectserver();
+  if(ret) {
+     throw 100;
+  }
+
   gmsk_mapper(SYNC_BITS, N_SYNC_BITS, d_sch_training_seq, gr_complex(0.0, -1.0));
   for (i = 0; i < TRAIN_SEQ_NUM; i++) {
     gr_complex startpoint;
@@ -114,23 +116,6 @@ gsm_receiver_cf2::gsm_receiver_cf2(gr::feval_dd *tuner, gr::feval_dd *synchroniz
   }
 
   //std::cout << "configuration : "<< configuration <<std::endl;
-
-  conn_result = 0; // set it to false first
-
-  if(scan_bts_flag.scan_flag != 1) {
-	  while (!conn_result) {
-		  printf("Connecting to server: %d \n",conn_result );
-		  conn_result = iconnectserver((char *)d_net_ip.c_str(), d_net_port);
-		  if (!conn_result) {
-			  printf("Cannot connect to server. Try again\n");
-
-			  sleep(3);
-		  } else {
-			  	  printf("Server Connected.\n");
-		  }
-	  }//while
-  }
-
 }
 
 /*
@@ -144,7 +129,6 @@ gsm_receiver_cf2::~gsm_receiver_cf2()
 
 void gsm_receiver_cf2::forecast(int noutput_items, gr_vector_int &nitems_items_required)
 {
-	nitems_items_required[1] = noutput_items * floor((TS_BITS + 2 * GUARD_PERIOD) * d_OSR);
 	nitems_items_required[0] = noutput_items * floor((TS_BITS + 2 * GUARD_PERIOD) * d_OSR);
 }
 
@@ -157,24 +141,21 @@ gsm_receiver_cf2::general_work(int noutput_items,
 {
 	const gr_complex *in_0, *in_1;
 	in_0 = (const gr_complex *) in_0_items[0];
-	in_1 = (const gr_complex *) in_0_items[1];
 
-
-
-	int consumable = nin_0_items[0] > nin_0_items[1]?nin_0_items[1]:nin_0_items[0];
+    int consumable = nin_0_items[0];
 
 	int produced_out = 0;  //how many output elements were produced - this isn't used yet
 
 	switch (d_state) {
 		//bootstrapping
 		case first_fcch_search: {
-			//printf("Search for fcch! \n");
-			if (find_fcch_burst(in_0, in_1, consumable)) { //find frequency correction burst in the in_0 buffer
+            printf("Search for fcch! \n");
+            if (find_fcch_burst(in_0, consumable)) { //find frequency correction burst in the in_0 buffer
 
 
 				set_frequency(d_freq_offset);                //if fcch search is successful set frequency offset
-			//	printf("==============Freq correction done ! \n");
-			//	printf("First Freq: %f \n", d_freq_offset);
+                printf("==============Freq correction done ! \n");
+                printf("First Freq: %f \n", d_freq_offset);
 				if(scan_bts_flag.scan_flag == 1)
 				{
 				//	std::cout << "scan BTS mode!!!" << std::endl;
@@ -182,7 +163,7 @@ gsm_receiver_cf2::general_work(int noutput_items,
 					scan_bts_flag.fcch_found = 1;
 					scan_bts_flag.fcch_unfcount = 0;
 
-			//		std::cout << "scan BTS find first fcch!!!" << std::endl;
+                    std::cout << "scan BTS find first fcch!!!" << std::endl;
 				}
 				d_state = next_fcch_search;
 
@@ -192,14 +173,14 @@ gsm_receiver_cf2::general_work(int noutput_items,
 
 				if(scan_bts_flag.scan_flag == 1)
 				{
-			//		std::cout << "scan BTS mode!!!" << std::endl;
+                    std::cout << "scan BTS mode!!!" << std::endl;
 					scan_bts_flag.fcch_unfcount++;
 					scan_bts_flag.fcch_found = 0;
 				//	scan_bts_flag.fcch_count = 0;
 
 					scan_bts_flag.sch_unfcount = 0; //can not find fcch so it can not find sch
 
-			//		std::cout << "scan BTS can not find first fcch!!!" << std::endl;
+                    std::cout << "scan BTS can not find first fcch!!!" << std::endl;
 					if(scan_bts_flag.fcch_unfcount >= d_sdr_config.fcch_timeout_boundary)
 					{
 						scan_bts_flag.fcch_timeout = 1;
@@ -213,7 +194,7 @@ gsm_receiver_cf2::general_work(int noutput_items,
 
 						set_frequency(0);
 
-				//		std::cout << "scan BTS finding fcch is timeout!" << std::endl;
+                        std::cout << "scan BTS finding fcch is timeout!" << std::endl;
 					}
 
 //					if(abs(d_freq_offset)> 100000)
@@ -235,25 +216,25 @@ gsm_receiver_cf2::general_work(int noutput_items,
 
 		case next_fcch_search: {                          //this state is used because it takes some time (a bunch of buffered samples)
 			float prev_freq_offset = d_freq_offset;        //before previous set_frequqency cause change
-			if (find_fcch_burst(in_0, in_1, consumable)) {
+            if (find_fcch_burst(in_0, consumable)) {
 
 
 
 				if (abs(prev_freq_offset - d_freq_offset) > FCCH_MAX_FREQ_OFFSET) {
 					set_frequency(d_freq_offset);              //call set_frequncy only frequency offset change is greater than some value
 				}
-				//printf("============Sec Freq correction done ! \n");
-			//	printf("next d_freq_offset: %f \n", d_freq_offset);
+                printf("============Sec Freq correction done ! \n");
+                printf("next d_freq_offset: %f \n", d_freq_offset);
 
 
 
 				if(scan_bts_flag.scan_flag == 1)
 				{
-			//		std::cout << "scan BTS mode!!!" << std::endl;
+                    std::cout << "scan BTS mode!!!" << std::endl;
 					scan_bts_flag.fcch_unfcount = 0;
 					scan_bts_flag.fcch_count++;
 					scan_bts_flag.fcch_found = 2;
-			//		std::cout << "scan BTS find second fcch!!!" << std::endl;
+                    std::cout << "scan BTS find second fcch!!!" << std::endl;
 				}
 
 				d_state = sch_search;
@@ -265,12 +246,12 @@ gsm_receiver_cf2::general_work(int noutput_items,
 				if(scan_bts_flag.scan_flag == 1)
 				{
 
-				//	std::cout << "scan BTS mode!!!" << std::endl;
+                    std::cout << "scan BTS mode!!!" << std::endl;
 					scan_bts_flag.fcch_count = 0;
 					scan_bts_flag.fcch_unfcount++;
 					scan_bts_flag.fcch_found = 1;
 
-				//	std::cout << "scan BTS can not find second fcch!!!" << std::endl;
+                    std::cout << "scan BTS can not find second fcch!!!" << std::endl;
 
 
 					if(scan_bts_flag.fcch_unfcount >= d_sdr_config.fcch_timeout_boundary)
@@ -278,7 +259,7 @@ gsm_receiver_cf2::general_work(int noutput_items,
 						d_freq_offset = 0;
 						scan_bts_flag.fcch_unfcount = 0;
 						scan_bts_flag.fcch_timeout = 1;
-					//	scan_bts_flag.sch_unfcount = 0;
+                        scan_bts_flag.sch_unfcount = 0;
 						scan_bts_flag.scan_count++;
 
 						scan_bts_flag.d_freq_offset_p = d_freq_offset;
@@ -288,8 +269,8 @@ gsm_receiver_cf2::general_work(int noutput_items,
 
 
 
-				//		std::cout << "scan BTS finding second fcch is timeout!" << std::endl;
-					//	std::cout << "scan BTS finding second fcch is timeout!" << std::endl;
+                        std::cout << "scan BTS finding second fcch is timeout!" << std::endl;
+                        std::cout << "scan BTS finding second fcch is timeout!" << std::endl;
 
 
 						d_state = first_fcch_search;
@@ -307,16 +288,16 @@ gsm_receiver_cf2::general_work(int noutput_items,
 			int burst_start = 0;
 			unsigned char output_binary[BURST_SIZE];
 
-			//printf("SCH Search!  consumable: %d\n", consumable);
+            printf("SCH Search!  consumable: %d\n", consumable);
 			if (reach_sch_burst(consumable)) {                              //wait for a SCH burst
 				burst_start = get_sch_chan_imp_resp(in_0, &channel_imp_resp[0]); //get channel impulse response from it
-				//printf("SCH Burst start %d\n", burst_start);
+                printf("SCH Burst start %d\n", burst_start);
 
 				detect_burst(in_0, &channel_imp_resp[0], burst_start, output_binary); //detect bits using MLSE detection
 				if (decode_sch(&output_binary[3], &t1, &t2, &t3, &d_ncc, &d_bcc) == 0) { //decode SCH burst
 					tt = ((t3 + 26) - t2) % 26;
 					d_fn = (51 * 26 * t1) + (51 * tt) + t3;//set counter of bursts value
-				//	printf("!!!!!!!!!miaomiaomiao!!! burst start: %d fn: %d mfn: %d bcc: %d !\n", burst_start, d_fn, d_fn%51, d_bcc);
+                    printf("!!!!!!!!!miaomiaomiao!!! burst start: %d fn: %d mfn: %d bcc: %d !\n", burst_start, d_fn, d_fn%51, d_bcc);
 					consume_each(burst_start + BURST_SIZE * d_OSR);   //consume samples up to next guard period
 					d_timeslot=1; // set next timeslot to be 1
 					d_mfn = t3;
@@ -329,27 +310,27 @@ gsm_receiver_cf2::general_work(int noutput_items,
 					if(scan_bts_flag.scan_flag == 1)
 					{
 						//set_scanbts_flag(0);
-					//	std::cout << "scan BTS mode!!!" << std::endl;
-					//	std::cout << "scan BTS scan_count: " << scan_bts_flag.scan_count << std::endl;
+                        std::cout << "scan BTS mode!!!" << std::endl;
+                        std::cout << "scan BTS scan_count: " << scan_bts_flag.scan_count << std::endl;
 						scan_bts_flag.sch_count++;
 						scan_bts_flag.sch_unfcount = 0;
-					//	std::cout << "scan BTS find sch!!!" << std::endl;
+                        std::cout << "scan BTS find sch!!!" << std::endl;
 						scan_bts_flag.sch_found = 1;
 						//scan_bts_flag.scan_count++;
 
 						scan_bts_flag.d_freq_overflow = 0;
-				//		if(scan_bts_flag.sch_count >= 3)
-			//			std::cout << "scan BTS find sch!!!" << std::endl;
-				//		scan_bts_flag.sch_found = 1;
+                        if(scan_bts_flag.sch_count >= 3)
+                        std::cout << "scan BTS find sch!!!" << std::endl;
+                        scan_bts_flag.sch_found = 1;
 						//scan_bts_flag.scan_count++;
 
 						d_state = first_fcch_search;
 						if(scan_bts_flag.sch_count >= 3)
 						{
-					//		scan_bts_flag.scan_count++;
+                    //		scan_bts_flag.scan_count++;
 							//set_scanbts_flag(0);
 							scan_bts_flag.sch_found = 3;
-						//	std::cout << "scan BTS d_freq_offset" <<d_freq_offset <<std::endl;
+                            std::cout << "scan BTS d_freq_offset" <<d_freq_offset <<std::endl;
 							if(abs(d_freq_offset) > 50000)
 							{
 								scan_bts_flag.d_freq_offset_p = d_freq_offset;
@@ -358,7 +339,7 @@ gsm_receiver_cf2::general_work(int noutput_items,
 							scan_bts_flag.scan_count++;
 							//set_scanbts_flag(0);
 							scan_bts_flag.sch_found = 3;
-	//						std::cout << "scan BTS d_freq_offset" <<d_freq_offset <<std::endl;
+                            std::cout << "scan BTS d_freq_offset" <<d_freq_offset <<std::endl;
 							d_freq_offset = 0;
 
 							set_frequency(0);
@@ -376,7 +357,7 @@ gsm_receiver_cf2::general_work(int noutput_items,
 							scan_bts_flag.fcch_timeout = 0;
 							scan_bts_flag.fcch_unfcount = 0;
 
-					//		std::cout << "scan BTS find 3 schs!!!" << std::endl;
+                            std::cout << "scan BTS find 3 schs!!!" << std::endl;
 
 						}
 					}
@@ -388,8 +369,8 @@ gsm_receiver_cf2::general_work(int noutput_items,
 
 					if(scan_bts_flag.scan_flag == 1)
 					{
-				//		std::cout << "scan BTS mode!!!" << std::endl;
-				//		std::cout << "scan BTS can not find sch!!!" << std::endl;
+                        std::cout << "scan BTS mode!!!" << std::endl;
+                        std::cout << "scan BTS can not find sch!!!" << std::endl;
 
 						scan_bts_flag.sch_unfcount++;
 						scan_bts_flag.sch_count = 0;
@@ -403,7 +384,7 @@ gsm_receiver_cf2::general_work(int noutput_items,
 							scan_bts_flag.sch_unfcount = 0;
 							scan_bts_flag.sch_timeout = 1;
 							set_frequency(0);
-					//		std::cout << "scan BTS finding sch is timeout" << std::endl;
+                            std::cout << "scan BTS finding sch is timeout" << std::endl;
 							d_state = first_fcch_search;
 						}
 					}
@@ -432,32 +413,32 @@ gsm_receiver_cf2::general_work(int noutput_items,
 			unsigned char output_binary[BURST_SIZE];
 
 			burst_type b_type = get_burst_type(0, d_fn, d_timeslot);
-//			printf("FN: %d, MFN: %d, Timeslot: %d, burst_type: %d    ", d_fn, d_mfn, d_timeslot, b_type);
-//
-//			printf("<<<<<<<<<<<<<<<<<<<<<<< Signal Sync! \n ");
-//			printf("burst type: %d \n", b_type);
+            //printf("FN: %d, MFN: %d, Timeslot: %d, burst_type: %d    ", d_fn, d_mfn, d_timeslot, b_type);
+
+            //printf("<<<<<<<<<<<<<<<<<<<<<<< Signal Sync! \n ");
+            //printf("burst type: %d \n", b_type);
 
 			switch (b_type) {
 				case fcch_burst: {
-		//			printf("FCCH     ");
+                    printf("FCCH     ");
 					const unsigned first_sample = ceil((GUARD_PERIOD + 2 * TAIL_BITS) * d_OSR) + 1;
 					const unsigned last_sample = first_sample + USEFUL_BITS * d_OSR - TAIL_BITS * d_OSR;
 					double freq_offset = compute_freq_offset(in_0, first_sample, last_sample);       //extract frequency offset from it
 
-//					printf("Freq offset: %f \n", freq_offset);
-					//fprintf(stderr,"FN: %d, MFN: %d,Freq offset: %f \n",d_fn,d_mfn,freq_offset);
+                    printf("Freq offset: %f \n", freq_offset);
+                    fprintf(stderr,"FN: %d, MFN: %d,Freq offset: %f \n",d_fn,d_mfn,freq_offset);
 					break;
 				}
 				case sch_burst: {
-//					printf("Synced!  SCH \n");
+                    //printf("Synced!  SCH \n");
 
 					int t1, t2, t3, tt;
 					burst_start = get_sch_chan_imp_resp(in_0, &channel_imp_resp[0]);                //get channel impulse response
 					detect_burst(in_0, &channel_imp_resp[0], burst_start, output_binary);           //MLSE detection of bits
 
-	//				printf("sync sch start: %d     ", burst_start);
+                    //printf("sync sch start: %d     ", burst_start);
 					if (decode_sch(&output_binary[3], &t1, &t2, &t3, &d_ncc, &d_bcc) == 0) {         //and decode SCH data                                              //but only to check if burst_start value is correct
-//						printf("------------SCH------------------------ start: %d\n", burst_start);
+                        //printf("------------SCH------------------------ start: %d\n", burst_start);
 						d_failed_sch = 0;
 						offset =  burst_start - floor((GUARD_PERIOD) * d_OSR);                         //compute offset from burst_start - burst should start after a guard period
 						tt = ((t3 + 26) - t2) % 26;
@@ -465,11 +446,11 @@ gsm_receiver_cf2::general_work(int noutput_items,
 						d_mfn = t3;
 						//d_timeslot=1; // set next timeslot to be 1
 
-//						printf("bcc: %d, t3: %d fn: %d offset: %d\n", d_bcc, t3,d_fn, offset);
+                        //printf("bcc: %d, t3: %d fn: %d offset: %d\n", d_bcc, t3,d_fn, offset);
 						to_consume += offset;                                                          //adjust with offset number of samples to be consumed
 
 					} else {
-						//printf("Decode error!\n");
+                        printf("Decode error!\n");
 						d_failed_sch++;
 						if (d_failed_sch >= MAX_SCH_ERRORS) {
 							d_state = next_fcch_search;        //TODO: this isn't good, the receiver is going wild when it goes back to next_fcch_search from here
@@ -482,51 +463,16 @@ gsm_receiver_cf2::general_work(int noutput_items,
 
 
 				case normal_burst: {
-					int n_fn, n_timeslot;
+                    int n_fn, n_timeslot;
 					int is_normal_burst=0;
 //					double power = 0;
 
 
 
-					if(d_sdr_config.ch0_upload == 1)
-					{
-						burst_start = get_norm_chan_imp_resp(in_0, &channel_imp_resp[0], d_bcc); //get channel impulse response for given training sequence number - d_bcc
-						detect_burst(in_0, &channel_imp_resp[0], burst_start, output_binary);          //MLSE detection of bits
-						process_network_burst(d_fn, d_arfcn, d_timeslot, output_binary);
-
-					}
-
-					if (d_channel2_type == none) {
-						break;
-					}
-					//
-					//  Channel 2
-					//
-					if(d_sdr_config.ch1_upload == 1)
-					{
-						burst_start = get_norm_chan_imp_resp(in_1, &channel_imp_resp[0], d_bcc); //get channel impulse response for given training sequence number - d_bcc
-						detect_burst(in_1, &channel_imp_resp[0], burst_start, output_binary);            //MLSE detection of bits
-						if (d_channel2_type == downlink) {
-							n_fn = d_fn;
-							n_timeslot = d_timeslot; // add 10 for timeslots in channel 2 are downlink
-						} else if (d_channel2_type == uplink) {
-							n_timeslot = d_timeslot ; //net yet implemented
-							if (n_timeslot < 3)
-							{
-								n_timeslot +=5;
-								n_fn = d_fn - 1;
-							}
-							else
-							{
-								n_timeslot -=3;
-								n_fn = d_fn;
-							}
-							n_timeslot = n_timeslot + 20;  // add 20 for timeslots in channel 2 are uplink
-						}
-						process_network_burst(n_fn, d_ch1_arfcn, n_timeslot, output_binary);
-					}
-
-					break;
+                    burst_start = get_norm_chan_imp_resp(in_0, &channel_imp_resp[0], d_bcc); //get channel impulse response for given training sequence number - d_bcc
+                    detect_burst(in_0, &channel_imp_resp[0], burst_start, output_binary);          //MLSE detection of bits
+                    process_network_burst(d_fn, d_arfcn, d_timeslot, output_binary);
+                    break;
 				}
 
 
@@ -571,11 +517,11 @@ bool gsm_receiver_cf2::process_network_burst(int fn, int arfcn, int timeslot, un
 
 	memcpy(network_binary,burst_binary+3,58*sizeof(char));
 	memcpy(network_binary+58,burst_binary+87,58*sizeof(char));
-	isenddata(timeslot, fn, arfcn, network_binary, NETWORK_BURST_BIT);
+    isenddata(timeslot, fn, arfcn, network_binary, NETWORK_BURST_BIT);
 	return 1;
 }
 
-bool gsm_receiver_cf2::find_fcch_burst(const gr_complex *in_0, const gr_complex *in2, const int nitems)
+bool gsm_receiver_cf2::find_fcch_burst(const gr_complex *in_0, const int nitems)
 {
   circular_buffer_float phase_diff_buffer(FCCH_HITS_NEEDED * d_OSR); //circular buffer used to scan throug signal to find
   //best match for FCCH burst
@@ -789,7 +735,7 @@ bool gsm_receiver_cf2::reach_sch_burst(const int nitems)
   }
 
   d_counter += to_consume;
- // printf("Reach SCH consume: %d \n", to_consume);
+  printf("Reach SCH consume: %d \n", to_consume);
   consume_each(to_consume);
   return result;
 }
@@ -1045,8 +991,7 @@ void gsm_receiver_cf2::diff_encode(const float *in,float *out,int length,float l
 void gsm_receiver_cf2::consume_each(int how_many_items) {
 
     gr::block::consume(0, how_many_items);
-    gr::block::consume(1, how_many_items);
-	d_symbol_counter+=how_many_items;
-	//printf("Total Drops: %u ; drops: %d \n ", d_symbol_counter, how_many_items);
+    d_symbol_counter+=how_many_items;
+    //printf("Total Drops: %u ; drops: %d \n ", d_symbol_counter, how_many_items);
 
 }

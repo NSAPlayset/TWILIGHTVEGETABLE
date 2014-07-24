@@ -2,12 +2,16 @@ add_subdirectory(decoder)
 add_subdirectory(libbase64cc)
 add_subdirectory(libnetwork)
 
+
+PROTOBUF_GENERATE_CPP(PROTO_SRC PROTO_HEADER gsmraw.proto)
+
 ########################################################################
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
-include_directories(${Boost_INCLUDE_DIR} ${GNURADIO_RUNTIME_INCLUDE_DIRS} ${GNURADIO_UHD_INCLUDE_DIRS} ${OSMOCOM_INCLUDES} decoder decoder/openbtsdecoder)
+include_directories(${Boost_INCLUDE_DIR} ${GNURADIO_RUNTIME_INCLUDE_DIRS} ${GNURADIO_UHD_INCLUDE_DIRS} ${OSMOCOM_INCLUDES} ${PROTOBUF_INCLUDES} decoder decoder/openbtsdecoder)
 link_directories(${Boost_LIBRARY_DIRS} ${GNURADIO_RUNTIME_LIBRARY_DIRS} ${OSMOCOM_LIBRARY_DIRS})
+
 
 list(APPEND npgsm_sources
     base64.c
@@ -19,10 +23,11 @@ list(APPEND npgsm_sources
     SDRini.c
     SDRlog.cc
     viterbi_detector.cc
+    ${PROTO_SRC}
 )
 
 add_library(gnuradio-npgsm SHARED ${npgsm_sources})
-target_link_libraries(gnuradio-npgsm ${Boost_LIBRARIES} ${GNURADIO_RUNTIME_LIBRARIES} ${OSMOCORE_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} decoder openbtsdecoder libnetwork libbase64cc)
+target_link_libraries(gnuradio-npgsm ${Boost_LIBRARIES} ${GNURADIO_RUNTIME_LIBRARIES} ${OSMOCORE_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${PROTOBUF_LIBRARIES} decoder openbtsdecoder libnetwork libbase64cc)
 set_target_properties(gnuradio-npgsm PROPERTIES DEFINE_SYMBOL "gnuradio_npgsm_EXPORTS")
 
 ########################################################################
