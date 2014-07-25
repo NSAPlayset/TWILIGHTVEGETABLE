@@ -15,7 +15,7 @@ int g_ikey_timeslot ;
  */
 boost::asio::io_service ioservice;
 boost::asio::ip::udp::socket udpsocket(ioservice);
-boost::asio::ip::udp::endpoint remote_endpoint(boost::asio::ip::address_v4::loopback(), NPGSM_UDP_PORT);
+boost::asio::ip::udp::endpoint remote_endpoint(boost::asio::ip::address::from_string(NPGSM_RAW_ADDR), NPGSM_RAW_PORT);
 
 int iconnectserver()
 {
@@ -24,7 +24,10 @@ int iconnectserver()
     udpsocket.open(boost::asio::ip::udp::v4(), error);
     if (!error)
     {
-        udpsocket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+        udpsocket.set_option(boost::asio::ip::udp::socket::broadcast(true));
+        udpsocket.set_option(boost::asio::ip::multicast::enable_loopback(true));
+        udpsocket.set_option(boost::asio::ip::multicast::hops(1));
+        udpsocket.set_option(boost::asio::ip::multicast::outbound_interface(boost::asio::ip::address_v4::loopback()));
     } else {
         return 1;
     }
@@ -50,28 +53,23 @@ void write_burst(unsigned char* u, int arfcn, int timeslot, int fn,double power)
 
 int isenddata(int itimeslot , int ifn , int iarfcn , unsigned char *pbburstdata , int iburstdatalen )
 {
-    unsigned char abcompressdata[20] ;
-	int icompresslen ; 
-	unsigned char btimeslot ;
+    unsigned char btimeslot ;
 	unsigned short warfcn ;
 	unsigned char abdata[200] ;
 	static unsigned char tmp  = 0;
 
-	memset(abcompressdata , 0 , sizeof(abcompressdata)) ;
-	icompresslen = 20 ;
-	compressburstdata8_1(pbburstdata , iburstdatalen , abcompressdata , icompresslen) ; 
-
-	btimeslot = itimeslot & 0xff ;
+    btimeslot = itimeslot & 0xff ;
 	warfcn = iarfcn & 0xffff ; 
-
+    //gsmtap_send (struct gsmtap_inst *gti, uint16_t arfcn, uint8_t ts, uint8_t chan_type, uint8_t ss, uint32_t fn, int8_t signal_dbm, uint8_t snr, const uint8_t *data, unsigned int len)
+    //gsmtap_send(gti, warfcn, btimeslot, chan_type, ss, ifn, 0, 0, pbburstdata, iburstdatalen);
 	memset(abdata , 0 , sizeof(abdata)) ; 
 	abdata[0] = btimeslot ;
 	memcpy(&abdata[1] , &ifn , 4) ; 
 	memcpy(&abdata[5] , &warfcn , 2 ) ; 
-	memcpy(&abdata[7] , abcompressdata ,  icompresslen) ;
+    memcpy(&abdata[7] , pbburstdata ,  iburstdatalen) ;
 
     boost::system::error_code ignored_error;
-    udpsocket.send_to(boost::asio::buffer((char *)abdata, 24+sizeof(double)), remote_endpoint, 0, ignored_error);
+    udpsocket.send_to(boost::asio::buffer((char *)abdata, 7+iburstdatalen), remote_endpoint, 0, ignored_error);
     return 0 ;
 }
 
@@ -79,69 +77,3 @@ int isenddata(int itimeslot , int ifn , int iarfcn , unsigned char *pbburstdata 
 void disconnectserver()
 {
 }
-
-
-int compressburstdata8_1(unsigned char *pbburstdata , int iburstdatalen , unsigned char *pbcompressdata , int &icompressdatalen)
-{
-	if((iburstdatalen&7)==0)
-	{
-		icompressdatalen = iburstdatalen>>3 ; 
-	}
-	else
-	{
-		icompressdatalen = (iburstdatalen>>3) + 1; 
-	}
-	
-	int i , j ; 
-	int iwz = 0 ; 
-	unsigned char btemp ; 
-	for(i=0;i<icompressdatalen-1;i++)
-	{
-		btemp = 0 ; 
-		for(j=0;j<8;j++)
-		{
-			btemp = (btemp<<1)|pbburstdata[iwz] ; 
-			iwz ++ ; 
-		}
-		pbcompressdata[i] = btemp ; 
-	}
-	btemp = 0 ; 
-	for(j=0;j<8;j++)
-	{
-		if(iwz<iburstdatalen)
-		{
-			btemp = (btemp<<1)|pbburstdata[iwz] ; 
-			iwz ++ ; 
-		}
-		else
-		{
-			break ; 
-		}
-	}
-	pbcompressdata[i] = btemp ; 
-	
-	return 0 ; 
-}
-
-int idecompressburstdata1_8(unsigned char *pbcompress , unsigned char *pbburstdata)
-{
-        memset(pbburstdata , 0 , sizeof(pbburstdata)) ;
-                int i , j ;
-                int iwz = 0 ;
-                for(i=0;i<14;i++)
-                {
-                        for(j=0;j<8;j++)
-                        {
-                                pbburstdata[iwz] = (pbcompress[i]>>(7-j))&1 ;
-                                iwz ++ ;
-                        }
-                }
-                for(j=0;j<4;j++)
-                {
-                        pbburstdata[iwz] = (pbcompress[i]>>(3-j))&1 ;
-                        iwz ++ ;
-                }
-                return 0 ;
-}
-
-

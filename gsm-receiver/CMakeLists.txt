@@ -74,7 +74,8 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 find_package(CppUnit REQUIRED)
 find_package(Osmocore REQUIRED)
 find_package(Threads REQUIRED)
-find_package(Protobuf REQUIRED)
+find_package(ZeroMQ REQUIRED)
+
 # To run a more advanced search for GNU Radio and it's components and
 # versions, use the following. Add any components required to the list
 # of GR_REQUIRED_COMPONENTS (in all caps) and change "version" to the
@@ -86,8 +87,8 @@ find_package(Gnuradio "3.7")
 if(NOT GNURADIO_RUNTIME_FOUND)
     message(FATAL_ERROR "GnuRadio Runtime required to compile np-gsm")
 endif()
-if(NOT PROTOBUF_FOUND)
-    message(FATAL_ERROR "Protobuf required to compile np-gsm")
+if(NOT ZEROMQ_FOUND)
+    message(FATAL_ERROR "ZeroMQ required to compile np-gsm")
 endif()
 if(NOT CPPUNIT_FOUND)
     message(FATAL_ERROR "CppUnit required to compile np-gsm")
@@ -112,6 +113,7 @@ include_directories(
     ${CPPUNIT_INCLUDE_DIRS}
     ${GNURADIO_RUNTIME_INCLUDE_DIRS}
     ${OSMOCORE_INCLUDE_DIRS}
+    ${ZeroMQ_INCLUDE_DIR}
 )
 
 link_directories(

@@ -27,7 +27,9 @@
 
 /* %include "gsm_constants.h" */
 %include "SDRconfigurationStruct.h"
-#define NPGSM_UDP_PORT 29653
+#define NPGSM_RAW_PORT 29653
+#define NPGSM_RAW_ADDR "239.255.0.1"
+
 %{
 #include "gnuradio_swig_bug_workaround.h"	// mandatory bug fix
 #include <gnuradio/py_feval.h>
