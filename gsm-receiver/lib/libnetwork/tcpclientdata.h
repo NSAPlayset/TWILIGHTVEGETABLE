@@ -11,6 +11,7 @@
 
 #define BUF_SIZE 1024
 #define NPGSM_UDP_PORT 29653
+#define NPGSM_MC_IP "239.13.37.1"
 
 #include <boost/asio.hpp>
 
