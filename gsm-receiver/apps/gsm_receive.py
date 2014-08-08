@@ -25,6 +25,13 @@ try:
 except:
     import npgsm
 
+class nullcb(gr.feval_dd):
+    def __init__(self,top_block):
+        gr.feval_dd.__init__(self)
+        self.top_block = top_block
+
+    def eval(self,val):
+        return val
 
 class tuner(gr.feval_dd):
     def __init__(self, top_block):
@@ -155,6 +162,7 @@ class top_block(gr.top_block):
         self.interpolator = filter.fractional_resampler_cc(0, sps)
         self.tuner_callback = tuner(self)
         self.synchronizer_callback = synchronizer(self)
+        self.null_callback = nullcb(self)
 
         print ">>>>>Input rate: ", sample_rate
 
@@ -167,20 +175,25 @@ class top_block(gr.top_block):
             options.maio,
             options.hsn,
             options.key.replace(' ', '').lower(),
-            options.configuration.upper())
+            options.configuration.upper(),
+            True)
 
-        self.receiver_cipher = npgsm.receiver_cf(
-            self.tuner_callback,
-            self.synchronizer_callback,
-            options.osr,
-            options.c0pos,
-            options.ma.replace(' ', '').lower(),
-            options.maio,
-            options.hsn,
-            options.key.replace(' ', '').lower(),
-            '1S')
+        #self.receiver_1 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'1S',False)
+        #self.receiver_2 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'2S',False)
+        #self.receiver_3 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'3S',False)
+        #self.receiver_4 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'4S',False)
+        #self.receiver_5 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'5S',False)
+        #self.receiver_6 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'6S',False)
+        #self.receiver_7 = npgsm.receiver_cf(self.null_callback,self.null_callback,options.osr,options.c0pos,options.ma.replace(' ', '').lower(),options.maio,options.hsn,options.key.replace(' ', '').lower(),'7S',False)
 
         self.connect((self.src, 0), (self.filter, 0), (self.interpolator, 0), (self.receiver, 0), (self.gr_null_sink, 0))
+        #self.connect((self.interpolator,0),(self.receiver_1,0),(self.gr_null_sink, 1))
+        #self.connect((self.interpolator,0),(self.receiver_2,0),(self.gr_null_sink, 2))
+        #self.connect((self.interpolator,0),(self.receiver_3,0),(self.gr_null_sink, 3))
+        #self.connect((self.interpolator,0),(self.receiver_4,0),(self.gr_null_sink, 4))
+        #self.connect((self.interpolator,0),(self.receiver_5,0),(self.gr_null_sink, 5))
+        #self.connect((self.interpolator,0),(self.receiver_6,0),(self.gr_null_sink, 6))
+        #self.connect((self.interpolator,0),(self.receiver_7,0),(self.gr_null_sink, 7))
 
     def set_center_frequency(self, center_freq):
         self.filter.set_center_freq(center_freq)
@@ -210,7 +223,7 @@ class top_block(gr.top_block):
                           help="gr-osmosdr device arguments")
         parser.add_option("-s", "--sample-rate", type="eng_float", default=1000000,
                           help="set receiver sample rate (default 1000000)")
-        parser.add_option("-f", "--frequency", type="eng_float", default=891.0e6,
+        parser.add_option("-f", "--frequency", type="eng_float", default=939.0e6,
                           help="set receiver center frequency (default: 891Mhz)")
         parser.add_option("-g", "--gain", type="eng_float", default=None,
                           help="set receiver gain")

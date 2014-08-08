@@ -415,12 +415,12 @@ static unsigned char *decode_sacch(GS_CTX *ctx, unsigned char *burst, unsigned i
 		if (FC_check_crc(&fc_ctx, decoded_data, crc_result) == 0)
 		{
 			errors = -1;
-			DEBUGF("error: sacch: parity error (%d fn=%d)\n",
-				errors, ctx->fn);
+            //DEBUGF("error: sacch: parity error (%d fn=%d)\n",
+            //	errors, ctx->fn);
 			return NULL;
 		} else {
-			DEBUGF("Successfully corrected parity bits! (errors=%d fn=%d)\n",
-				errors, ctx->fn);
+            //DEBUGF("Successfully corrected parity bits! (errors=%d fn=%d)\n",
+            //	errors, ctx->fn);
 			memcpy(decoded_data, crc_result, sizeof crc_result);
 			errors = 0;
 		}

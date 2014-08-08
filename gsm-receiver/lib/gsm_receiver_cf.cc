@@ -91,7 +91,7 @@ int gsm_receiver_cf::calculate_ma_sfh(int maio, int hsn, int n, int t1, int t2, 
         mai = (s + maio) % n;
     }
 
-    //DCOUT("MAI: " << mai);
+    DCOUT("MAI: " << mai);
 
     return (mai);
 }
@@ -136,7 +136,7 @@ int gsm_receiver_cf::calculate_ca_sfh(std::vector<unsigned char> ma, int maio, i
         break;
   }
 
-  //DCOUT("CAI: " << cai_offset)
+  DCOUT("CAI: " << cai_offset)
 
   return (cai_offset);
 }
@@ -188,30 +188,10 @@ void decrypt(const unsigned char * burst_binary, byte * KC, unsigned char * decr
 void dump_bits(const unsigned char * burst_binary, unsigned char * decrypted_data, burst_counter burst_nr, bool first_burst)
 {
   int i;
-
-  /* Cipher bits */
-  printf("C%d %d %d: ", first_burst, burst_nr.get_frame_nr(), burst_nr.get_frame_nr_mod());
-  for (int i = 0; i < 57; i++)
-    printf("%d", burst_binary[i+3]);
-  for (int i = 0; i < 57; i++)
-    printf("%d", burst_binary[i+88]);
-  printf("\n");
-
-  /* Plain bits */
-  printf("P%d %d %d: ", first_burst, burst_nr.get_frame_nr(), burst_nr.get_frame_nr_mod());
-  for (int i = 0; i < 57; i++)
-    printf("%d", decrypted_data[i+3]);
-  for (int i = 0; i < 57; i++)
-    printf("%d", decrypted_data[i+88]);
-  printf("\n");
-
-  /* Keystream bits */
-  printf("S%d %d %d: ", first_burst, burst_nr.get_frame_nr(), burst_nr.get_frame_nr_mod());
-  for (int i = 0; i < 57; i++)
-    printf("%d", burst_binary[i+3] ^ decrypted_data[i+3]);
-  for (int i = 0; i < 57; i++)
-    printf("%d", burst_binary[i+88] ^ decrypted_data[i+88]);
-  printf("\n");
+  unsigned char bits[114];
+  memcpy(bits,burst_binary+3,57);
+  memcpy(bits+57,burst_binary+88,57);
+  isenddata(burst_nr.get_timeslot_nr(),burst_nr.get_frame_nr(),0,bits,114);
 }
 
 void gsm_receiver_cf::read_ma(std::string ma)
@@ -425,9 +405,9 @@ typedef std::vector<float> vector_float;
 typedef boost::circular_buffer<float> circular_buffer_float;
 
 gsm_receiver_cf_sptr
-gsm_make_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn, std::string key, std::string configuration)
+gsm_make_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn, std::string key, std::string configuration, bool primary)
 {
-  return gsm_receiver_cf_sptr(new gsm_receiver_cf(tuner, synchronizer, osr, c0pos, ma, maio, hsn, key, configuration));
+  return gsm_receiver_cf_sptr(new gsm_receiver_cf(tuner, synchronizer, osr, c0pos, ma, maio, hsn, key, configuration, primary));
 }
 
 static const int MIN_IN = 1; // mininum number of input streams
@@ -438,7 +418,7 @@ static const int MAX_OUT = 1; // maximum number of output streams
 /*
  * The private constructor
  */
-gsm_receiver_cf::gsm_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn, std::string key, std::string configuration)
+gsm_receiver_cf::gsm_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer, int osr, int c0pos, std::string ma, int maio, int hsn, std::string key, std::string configuration, bool primary)
     : gr::block("gsm_receiver",
                gr::io_signature::make(MIN_IN, MAX_IN, sizeof(gr_complex)),
                gr::io_signature::make(MIN_OUT, MAX_OUT, 142 * sizeof(float))),
@@ -454,10 +434,15 @@ gsm_receiver_cf::gsm_receiver_cf(gr::feval_dd *tuner, gr::feval_dd *synchronizer
     d_trace_sch(true),
     d_c0pos(c0pos),
     d_maio(maio),
-    d_hsn(hsn)
+    d_hsn(hsn),
+    d_primary(primary)
 {
   read_ma(ma);  // calculate ARFCN
 
+  int ret = iconnectserver();
+  if(ret) {
+      throw 100;
+  }
   if (d_c0pos >= d_narfcn)
     DCOUT("ERROR: Wrong main channel position in MA: " << d_c0pos << ", " << d_narfcn);
 
@@ -615,6 +600,7 @@ gsm_receiver_cf::general_work(int noutput_items,
   switch (d_state) {
       //bootstrapping
     case first_fcch_search:
+      if(!d_primary) break;
       if (find_fcch_burst(input, nitems_items[0])) { //find frequency correction burst in the input buffer
         set_frequency(d_freq_offset);                //if fcch search is successful set frequency offset
         //produced_out = 0;
@@ -626,6 +612,7 @@ gsm_receiver_cf::general_work(int noutput_items,
       break;
 
     case next_fcch_search: {                         //this state is used because it takes some time (a bunch of buffered samples)
+        if(!d_primary) break;
         float prev_freq_offset = d_freq_offset;        //before previous set_frequqency cause change
         if (find_fcch_burst(input, nitems_items[0])) {
           if (abs(prev_freq_offset - d_freq_offset) > FCCH_MAX_FREQ_OFFSET) {
@@ -641,6 +628,7 @@ gsm_receiver_cf::general_work(int noutput_items,
       }
 
     case sch_search: {
+        if(!d_primary) break;
         vector_complex channel_imp_resp(CHAN_IMP_RESP_LENGTH*d_OSR);
         int t1, t2, t3;
         int burst_start = 0;
@@ -709,7 +697,7 @@ gsm_receiver_cf::general_work(int noutput_items,
                   DCOUT("Adjusting frequency, new frequency offset: " << d_freq_offset << "\n");
                 }
               }
-              //DCOUT("fcch burst, TS: " << d_burst_nr.get_timeslot_nr());
+              DCOUT("fcch burst, TS: " << d_burst_nr.get_timeslot_nr());
             }
             break;
           case sch_burst: {                                                                    //if it's SCH burst
@@ -722,8 +710,7 @@ gsm_receiver_cf::general_work(int noutput_items,
                 offset =  burst_start - floor((GUARD_PERIOD) * d_OSR);                         //compute offset from burst_start - burst should start after a guard period
                 if(d_trace_sch)
                 {
-                  DCOUT("bcc: " << d_bcc << " ncc: " << d_ncc << " t1: " << t1 << " t2: " << t2 << " t3: " << t3 << 
-                      " FN: " << d_burst_nr.get_frame_nr());
+                  DCOUT("bcc: " << d_bcc << " ncc: " << d_ncc << " t1: " << t1 << " t2: " << t2 << " t3: " << t3 << " FN: " << d_burst_nr.get_frame_nr());
                   DCOUT(offset);
                 }
                 DCOUT("sch burst, TS: " << d_burst_nr.get_timeslot_nr());
@@ -740,7 +727,7 @@ gsm_receiver_cf::general_work(int noutput_items,
             break;
 
           case normal_burst:                                                                  //if it's normal burst
-            //DCOUT("normal burst, TS: " << d_burst_nr.get_timeslot_nr() << " FN: " << d_burst_nr.get_frame_nr());
+            DCOUT("normal burst, TS: " << d_burst_nr.get_timeslot_nr() << " FN: " << d_burst_nr.get_frame_nr());
             tmp = input;
             if (d_burst_nr.get_timeslot_nr() != 0)
             {
@@ -758,7 +745,7 @@ gsm_receiver_cf::general_work(int noutput_items,
             break;
 
           case dummy_or_normal: {
-            //DCOUT("dummy_or_normal burst, TS: " << d_burst_nr.get_timeslot_nr());
+            DCOUT("dummy_or_normal burst, TS: " << d_burst_nr.get_timeslot_nr());
             tmp = input;
             if (d_burst_nr.get_timeslot_nr() != 0)
             {
@@ -783,7 +770,7 @@ gsm_receiver_cf::general_work(int noutput_items,
               printf("Tail bits: %x%x%x\n", output_binary[0], output_binary[1], output_binary[2]);
               if (1 /*!output_binary[0] && !output_binary[1] && !output_binary[2]*/) {
                 process_normal_burst(d_burst_nr, output_binary, first_burst); //TODO: this shouldn't be here - remove it when gsm receiver's interface will be ready
-                //DCOUT("dummy_or_normal: normal burst, TS: " << d_burst_nr.get_timeslot_nr() << " FN: " << d_burst_nr.get_frame_nr());
+                DCOUT("dummy_or_normal: normal burst, TS: " << d_burst_nr.get_timeslot_nr() << " FN: " << d_burst_nr.get_frame_nr());
               }
             }
             input = tmp;
@@ -798,10 +785,10 @@ gsm_receiver_cf::general_work(int noutput_items,
           case dummy:                                                         //if it's dummy
             burst_start = get_norm_chan_imp_resp(input, &channel_imp_resp[0], TS_DUMMY); //read dummy
             detect_burst(input, &channel_imp_resp[0], burst_start, output_binary);   // but as far as I know it's pointless
-            //DCOUT("dummy burst, TS: " << d_burst_nr.get_timeslot_nr());
+            DCOUT("dummy burst, TS: " << d_burst_nr.get_timeslot_nr());
             break;
           case empty:   //if it's empty burst
-            //DCOUT("empty burst, TS: " << d_burst_nr.get_timeslot_nr());
+            DCOUT("empty burst, TS: " << d_burst_nr.get_timeslot_nr());
             break;      //do nothing
         }
 

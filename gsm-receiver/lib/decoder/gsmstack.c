@@ -55,7 +55,7 @@ diff_decode(char *dst, char *src, int len)
 	const char *end = src + len;
 	unsigned char last;
 
-	src += 3;
+    src += 3;
 	last = 0;
 	memset(dst, 0, 3);
 	dst += 3;
@@ -305,7 +305,7 @@ GS_process(GS_CTX *ctx, int ts, int type, const unsigned char *src, int fn, int 
 		ts_ctx->burst_count = 0;
 		data = decode_cch(ctx, ts_ctx->burst, &len);
 		if (data == NULL) {
-			DEBUGF("cannot decode fnr=0x%06x (%6d) ts=%d\n", ctx->fn, ctx->fn, ts);
+            //DEBUGF("cannot decode fnr=0x%06x (%6d) ts=%d\n", ctx->fn, ctx->fn, ts);
 			return -1;
 		}
 		//DEBUGF("OK TS %d, len %d\n", ts, len);

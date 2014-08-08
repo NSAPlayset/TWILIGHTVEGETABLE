@@ -257,7 +257,7 @@ int decode_sch(const unsigned char *buf, int * t1_o, int * t2_o, int * t3_o, int
   // Viterbi decode
   if (errors = conv_decode(data, decoded_data)) {
     // fprintf(stderr, "error: sch: conv_decode (%d)\n", errors);
-    DEBUGF("ERR: conv_decode %d\n", errors);
+    //DEBUGF("ERR: conv_decode %d\n", errors);
     return errors;
   }
 

@@ -19,17 +19,19 @@ boost::asio::ip::udp::endpoint remote_endpoint(boost::asio::ip::address_v4::from
 
 int iconnectserver()
 {
-    boost::system::error_code error;
+    if(!udpsocket.is_open()) {
+        boost::system::error_code error;
 
-    udpsocket.open(boost::asio::ip::udp::v4(), error);
-    if (!error)
-    {
-        udpsocket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-        udpsocket.set_option(boost::asio::ip::multicast::enable_loopback(true));
-        udpsocket.set_option(boost::asio::ip::multicast::hops(1));
-        udpsocket.set_option(boost::asio::ip::multicast::outbound_interface(boost::asio::ip::address_v4::loopback()));
-    } else {
-        return 1;
+        udpsocket.open(boost::asio::ip::udp::v4(), error);
+        if (!error)
+        {
+            udpsocket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+            udpsocket.set_option(boost::asio::ip::multicast::enable_loopback(true));
+            udpsocket.set_option(boost::asio::ip::multicast::hops(1));
+            udpsocket.set_option(boost::asio::ip::multicast::outbound_interface(boost::asio::ip::address_v4::loopback()));
+        } else {
+            return 1;
+        }
     }
     return 0;
 }
