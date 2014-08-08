@@ -788,7 +788,7 @@ gsm_receiver_cf::general_work(int noutput_items,
             DCOUT("dummy burst, TS: " << d_burst_nr.get_timeslot_nr());
             break;
           case empty:   //if it's empty burst
-            DCOUT("empty burst, TS: " << d_burst_nr.get_timeslot_nr());
+            //DCOUT("empty burst, TS: " << d_burst_nr.get_timeslot_nr());
             break;      //do nothing
         }
 
